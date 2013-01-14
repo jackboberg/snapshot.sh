@@ -1,7 +1,7 @@
 snapshot.sh
 ===========
 
-rotating rsync backups
+Rotating rsync backups, intended for use with OS X (tested with 10.8).
 
 ### Config
 

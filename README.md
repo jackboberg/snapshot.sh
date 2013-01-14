@@ -12,8 +12,8 @@ Edit the scipts to set source/destication directories to match you desires, and 
 
 Move the scripts to somewhere on your path.
 
-    mv snapshot /usr/local/bin/ && mv snapshot_daily_rotate /usr/local/bin/
-
+    cp snapshot /usr/local/bin/ && cp snapshot_daily_rotate /usr/local/bin/
+    cp backup_exclude /usr/local/etc/
 
 ### Cron
 

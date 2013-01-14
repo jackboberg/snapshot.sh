@@ -1,0 +1,69 @@
+#!/bin/bash
+# ----------------------------------------------------------------------
+# rotating-filesystem-snapshot utility
+# ----------------------------------------------------------------------
+# makes rotating backup-snapshots of /home whenever called
+#
+# modified from http://www.mikerubel.org/computers/rsync_snapshots/
+# ----------------------------------------------------------------------
+
+# avoid accidental use of $PATH
+unset PATH
+
+# ------------- system commands used by this script --------------------
+
+ID=/usr/bin/id;
+ECHO=/bin/echo;
+HDIUTIL=/usr/bin/hdiutil
+RM=/bin/rm;
+MV=/bin/mv;
+CP=/bin/cp;
+TOUCH=/usr/bin/touch;
+RSYNC=/usr/bin/rsync;
+
+# ------------- file locations -----------------------------------------
+
+SPARSE_BUNDLE=/Volumes/Ganymede/backups/jove.sparsebundle
+SNAPSHOT_RW=/Volumes/backup
+TARGET=/Users/jack/
+EXCLUDES=/usr/local/etc/backup_exclude;
+
+# ------------- the script itself --------------------------------------
+
+# make sure we're running as root
+if (( `$ID -u` != 0 )); then
+  $ECHO "snapshot: Sorry, must be root...";
+  exit;
+fi;
+
+# attempt to mount the sparseimage; else abort
+$HDIUTIL attach -noverify $SPARSE_BUNDLE
+if (( $? )); then
+  $ECHO "snapshot: Could not mount $SNAPSHOT_RW";
+  exit;
+fi;
+
+# step 1: delete the oldest snapshot, if it exists:
+if [ -d $SNAPSHOT_RW/hourly.3 ] ; then
+  $RM -rf $SNAPSHOT_RW/hourly.3;
+fi;
+
+# step 2: shift the middle snapshots(s) back by one, if they exist
+if [ -d $SNAPSHOT_RW/hourly.2 ] ; then
+  $MV $SNAPSHOT_RW/hourly.2 $SNAPSHOT_RW/hourly.3;
+fi;
+if [ -d $SNAPSHOT_RW/hourly.1 ] ; then
+  $MV $SNAPSHOT_RW/hourly.1 $SNAPSHOT_RW/hourly.2;
+fi;
+if [ -d $SNAPSHOT_RW/hourly.0 ] ; then
+  $MV $SNAPSHOT_RW/hourly.0 $SNAPSHOT_RW/hourly.1;
+fi;
+
+# step 4: rsync from the system into the latest snapshot
+$RSYNC -va --delete --delete-excluded --exclude-from="$EXCLUDES" --link-dest=../hourly.1 $TARGET $SNAPSHOT_RW/hourly.0;
+
+# step 5: update the mtime of hourly.0 to reflect the snapshot time
+$TOUCH $SNAPSHOT_RW/hourly.0 ;
+
+# all done!
+$HDIUTIL detach $SNAPSHOT_RW
